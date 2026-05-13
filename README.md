@@ -11,19 +11,19 @@ Pages** with no live backend.
   browser geolocation rounded to the nearest 0.5° (~55 km). Explicit GDPR
   Article 6(1)(a) consent checkbox. Local-only storage; export/clear from the
   Profile screen.
-- **Realistic seeded catalog.** 1,041 stickers across 51 sections (Tournament,
-  Host Cities, Legends, plus 48 national teams with badge / team photo /
-  starting XI / 16 players / legend). Replace
+- **Realistic seeded catalog.** 980 stickers across 50 sections, aligned to the
+  reported 2026 structure: 20 opening / museum stickers plus 48 national teams
+  with 20 stickers each. Replace
   [`src/data/catalog.json`](src/data/catalog.json) with the official Panini
-  checklist when published — the structure is stable.
+  checklist for production — the structure is stable.
 - **Responsive album.** Search, status filters (all / owned / missing /
   doubles), confederation filter, per-section bulk "mark all owned" and
   "reset", and a sheet/modal that adjusts copies (0 = missing, 1 = owned,
   &gt;1 = duplicate).
-- **Explainable trade matching.** Pairs your duplicates with simulated nearby
-  collectors' missing list and vice-versa, weighted with a coarse distance
-  bucket (50 km / 200 km / 800 km / 2,500 km / worldwide) and activity recency.
-  Score formula and components are visible per match.
+- **Explainable trade matching.** By default, no people are shown in the static
+  build because it is not connected to real collector accounts. A visible demo
+  mode can be enabled to test matching against generated collectors; score
+  formula and components are visible per match.
 - **Monte Carlo completion forecast.** 600-trial uniform-draw simulation
   conditioned on packs you plan to buy and trades you've proposed; reports
   mean, P10–P90, probability of full set, expected duplicates, and a
@@ -37,7 +37,7 @@ Pages** with no live backend.
 src/
   data/
     catalog.json         # seeded sticker catalog (regenerate via scripts/)
-    users.json           # 36 simulated nearby collectors
+    users.json           # generated demo collectors for algorithm testing only
   lib/
     storage.ts           # localStorage persistence (replaceable by /api/state)
     geo.ts               # coarse distance buckets + region presets
@@ -127,10 +127,11 @@ real backend:
 2. **GitHub Gist as a persistence layer** for hobby use: store the state JSON
    in a private gist using a fine-scoped PAT — no infra needed beyond
    GitHub.
-3. **Real nearby users:** `src/data/users.json` is the entire simulated user
-   database. Replace it with an API call (`/api/users?near=...`) that returns
-   the same shape: `{ users: SimUser[] }`. Only the bucket of distance is ever
-   shown to other users — exact coordinates never need to leave the server.
+3. **Real nearby users:** `src/data/users.json` is generated demo data for
+   algorithm testing only. Replace it with an API call (`/api/users?near=...`)
+   that returns the same shape: `{ users: SimUser[] }`. Only opted-in collectors
+   should be returned, and only the bucket of distance should ever be shown to
+   other users — exact coordinates never need to leave the server.
 
 The matching algorithm and forecast model are pure functions in `src/lib/` —
 they can be reused unchanged on the server.
@@ -148,6 +149,6 @@ they can be reused unchanged on the server.
 
 ## Not affiliated with FIFA or Panini
 
-The sticker catalog is a structurally accurate sample for development. Swap in
-the official checklist when Panini publishes it; the file format is documented
+The sticker catalog is a structurally accurate demo for development. Swap in
+the official checklist before production use; the file format is documented
 inside `scripts/generateCatalog.mjs`.

@@ -60,42 +60,36 @@ const TEAMS = [
   { code: 'NZL', name: 'New Zealand', confed: 'OFC' },
 ];
 
-// Per-team sticker template (mirrors Panini conventions — flag, badge, team photo, lineup, 16 player slots, legend, key player special).
+// Per-team sticker template aligned to the reported 2026 structure:
+// 48 teams × 20 stickers = 960 team stickers.
 const TEAM_TEMPLATE = [
-  { suffix: 'FLAG', kind: 'badge', label: 'Flag' },
   { suffix: 'BADGE', kind: 'badge', label: 'Team Badge' },
   { suffix: 'PHOTO', kind: 'team-photo', label: 'Team Photo' },
-  { suffix: 'LINEUP', kind: 'lineup', label: 'Starting XI' },
-  ...Array.from({ length: 16 }, (_, i) => ({ suffix: `P${i + 1}`, kind: 'player', label: `Player ${i + 1}` })),
-  { suffix: 'LEGEND', kind: 'legend', label: 'Legend' },
+  ...Array.from({ length: 18 }, (_, i) => ({ suffix: `P${i + 1}`, kind: 'player', label: `Player ${i + 1}` })),
 ];
 
-// Bonus/special sections to add depth and variety (mirrors host cities, mascots, trophy, FWC history).
+// 20 non-team stickers: 9 opening/tournament stickers + 11 museum/history stickers.
 const SPECIAL_SECTIONS = [
   {
-    section: 'Tournament',
+    section: 'Opening Stickers',
     items: [
+      { code: '00', kind: 'logo', label: 'Panini Logo' },
       { code: 'WC-TROPHY', kind: 'trophy', label: 'FIFA World Cup Trophy' },
       { code: 'WC-LOGO', kind: 'logo', label: 'Official Logo' },
-      { code: 'WC-MASCOT-MAPLE', kind: 'mascot', label: 'Mascot · Maple' },
-      { code: 'WC-MASCOT-ZAYU', kind: 'mascot', label: 'Mascot · Zayu' },
-      { code: 'WC-MASCOT-CLUTCH', kind: 'mascot', label: 'Mascot · Clutch' },
+      { code: 'WC-MASCOTS', kind: 'mascot', label: 'Official Mascots' },
+      { code: 'WC-SLOGAN', kind: 'slogan', label: 'Official Slogan' },
       { code: 'WC-BALL', kind: 'ball', label: 'Match Ball' },
-      { code: 'WC-POSTER', kind: 'poster', label: 'Official Poster' },
+      { code: 'WC-CANADA', kind: 'host', label: 'Host Country · Canada' },
+      { code: 'WC-MEXICO', kind: 'host', label: 'Host Country · Mexico' },
+      { code: 'WC-USA', kind: 'host', label: 'Host Country · United States' },
     ],
   },
   {
-    section: 'Host Cities',
+    section: 'FIFA Museum',
     items: [
-      'Atlanta','Boston','Dallas','Guadalajara','Houston','Kansas City','Los Angeles','Mexico City','Miami',
-      'Monterrey','New York/New Jersey','Philadelphia','San Francisco','Seattle','Toronto','Vancouver'
-    ].map((c, i) => ({ code: `HC-${String(i + 1).padStart(2, '0')}`, kind: 'city', label: c })),
-  },
-  {
-    section: 'Legends of the Game',
-    items: [
-      'Pelé','Maradona','Cruyff','Zidane','Ronaldo','Beckenbauer','Müller','Charlton','Garrincha','Iniesta'
-    ].map((n, i) => ({ code: `LEG-${String(i + 1).padStart(2, '0')}`, kind: 'legend', label: n })),
+      'Uruguay 1930','Italy 1934','Brazil 1958','England 1966','Argentina 1978','France 1998',
+      'Germany 2014','France 2018','Argentina 2022','World Cup Icons','Road to 2026'
+    ].map((n, i) => ({ code: `MUS-${String(i + 1).padStart(2, '0')}`, kind: 'museum', label: n })),
   },
 ];
 
@@ -123,12 +117,12 @@ for (const team of TEAMS) {
 
 const total = id - 1;
 const catalog = {
-  edition: 'FIFA World Cup 2026 — sample catalog',
+  edition: 'FIFA World Cup 2026 — 980-sticker demo catalog',
   generatedAt: new Date().toISOString(),
-  source: 'Generated sample — replace with official Panini checklist when published.',
+  source: 'Demo catalog aligned to the reported 980-sticker structure; replace names/codes with the official Panini checklist for production.',
   total,
-  stickersPerPack: 5,
-  retailPackPriceUSD: 1.5,
+  stickersPerPack: 7,
+  retailPackPriceUSD: 1.6,
   sections,
 };
 

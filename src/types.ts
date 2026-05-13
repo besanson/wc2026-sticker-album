@@ -1,6 +1,7 @@
 export type StickerKind =
   | 'badge' | 'team-photo' | 'lineup' | 'player' | 'legend'
-  | 'trophy' | 'logo' | 'mascot' | 'ball' | 'poster' | 'city';
+  | 'trophy' | 'logo' | 'mascot' | 'ball' | 'poster' | 'city'
+  | 'slogan' | 'host' | 'museum';
 
 export interface TeamMeta {
   code: string;

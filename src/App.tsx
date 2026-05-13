@@ -18,7 +18,7 @@ const NAV: { id: View; label: string; Icon: React.FC<{ size?: number }> }[] = [
 ];
 
 function Shell() {
-  const { profile, resolvedTheme, setTheme, theme } = useApp();
+  const { catalog, profile, resolvedTheme, setTheme, theme } = useApp();
   const [view, setView] = useState<View>('album');
 
   if (!profile) return <Onboarding />;
@@ -74,7 +74,7 @@ function Shell() {
       </nav>
 
       <footer className="foot">
-        Estádio · sample catalog of {1041} stickers. Not affiliated with FIFA or Panini. Replace <code>src/data/catalog.json</code> with the official checklist.
+        Estádio · demo catalog aligned to {catalog.total} reported 2026 stickers. Not affiliated with FIFA or Panini. Replace <code>src/data/catalog.json</code> with the official checklist for production.
       </footer>
     </div>
   );

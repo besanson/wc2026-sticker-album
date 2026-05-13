@@ -63,12 +63,12 @@ export function Onboarding() {
         </div>
 
         <p className="muted" style={{ margin: 0 }}>
-          Track every sticker, swap doubles with collectors nearby, and forecast how close you are to a full set.
+          Track every sticker, prepare privacy-safe swaps, and forecast how close you are to a full set.
         </p>
 
         <div className="field">
           <label htmlFor="alias">Display name</label>
-          <input id="alias" className="input" placeholder="e.g. Goalden Boot" value={alias} onChange={e => setAlias(e.target.value)} required maxLength={40} />
+          <input id="alias" className="input" placeholder="e.g. Golden Boot" value={alias} onChange={e => setAlias(e.target.value)} required maxLength={40} />
         </div>
 
         <div className="field">
