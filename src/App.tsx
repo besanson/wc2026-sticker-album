@@ -74,7 +74,7 @@ function Shell() {
       </nav>
 
       <footer className="foot">
-        Estádio · demo catalog aligned to {catalog.total} reported 2026 stickers. Not affiliated with FIFA or Panini. Replace <code>src/data/catalog.json</code> with the official checklist for production.
+        Estádio · independent fan project · demo catalog aligned to {catalog.total} reported 2026 stickers. Not affiliated with FIFA or Panini, and no Panini imagery or trademarks are used. Replace <code>src/data/catalog.json</code> with the official checklist locally if you want.
       </footer>
     </div>
   );

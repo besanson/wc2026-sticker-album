@@ -135,6 +135,10 @@ a:hover { text-decoration: underline; }
 }
 .user-pill .avatar { width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: white; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
 .user-pill .who { font-size: 13px; font-weight: 600; }
+@media (max-width: 480px) {
+  .user-pill .who { display: none; }
+  .user-pill { padding: 4px; }
+}
 
 /* mobile tab bar */
 .mobile-tabs {
@@ -335,9 +339,12 @@ a:hover { text-decoration: underline; }
 .modal-head .preview { width: 64px; height: 84px; border-radius: 10px; background: var(--surface-3); display: grid; place-items: center; font-family: var(--font-display); font-weight: 700; font-size: 18px; color: var(--text-faint); }
 .qty-row { display: flex; align-items: center; gap: 10px; }
 .qty-btn {
-  width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); display: grid; place-items: center;
+  width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface-2); display: grid; place-items: center;
   font-size: 18px; font-weight: 700;
+  transition: background .12s ease, border-color .12s ease;
 }
+.qty-btn:hover { border-color: var(--border-strong); background: var(--surface-3); }
+.qty-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .qty-display {
   flex: 1; text-align: center; font-family: var(--font-display); font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums;
   padding: 8px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
@@ -370,6 +377,37 @@ a:hover { text-decoration: underline; }
 }
 .trade-explainer { font-size: 12.5px; color: var(--text-muted); line-height: 1.6; }
 .trade-explainer code { background: var(--surface-3); padding: 1px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 11.5px; }
+
+.trade-flow {
+  margin: 10px 0 4px;
+  padding-left: 22px;
+  display: grid;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.trade-flow li { padding-left: 2px; }
+.trade-flow li::marker { color: var(--accent); font-weight: 700; }
+.trade-flow b { color: var(--text); }
+.trade-flow code {
+  background: var(--surface-2); border: 1px solid var(--border);
+  padding: 0 5px; border-radius: 4px; font-family: var(--font-mono); font-size: 11.5px;
+}
+
+/* === Empty states === */
+.empty-state {
+  text-align: center;
+  display: grid; gap: 6px; justify-items: center;
+  padding: 28px 18px;
+}
+.empty-state h3 { font-size: 16px; }
+.empty-state p { margin: 0; max-width: 46ch; font-size: 13.5px; }
+.empty-illustration {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: var(--surface-3); display: grid; place-items: center;
+  font-size: 26px; margin-bottom: 4px;
+}
 
 /* === Forecast === */
 .forecast-grid { display: grid; gap: 18px; grid-template-columns: 1fr; }

@@ -66,23 +66,30 @@ export function TradesView() {
   return (
     <div className="stack-lg">
       <header className="card card-pad">
-        <h2>Trades nearby</h2>
+        <h2>Trades</h2>
         <div className="sub">
           Matched on overlap of your duplicates against another collector's missing list and vice-versa, with a coarse distance preference. Exact locations are never shared — only a distance bucket.
         </div>
 
         <div className="notice mt-4">
-          <b>GitHub-only trade network.</b> This site is a static GitHub Pages
-          build with no server. Real collectors publish their profiles by
-          opening a GitHub issue from the template below; a maintainer reviews
-          and approves it, and a workflow commits the entry to{' '}
-          <code>public/trade-network.json</code>. Your browser fetches that
-          file directly — no API, no token, no precise location.
+          <b>You need a GitHub account to publish a trade profile.</b> This site is a
+          static GitHub Pages build with no server and no database — the only way to
+          add yourself to the trade ledger is by opening an issue on the project's
+          GitHub repository. You will be prompted to sign in with GitHub if you are
+          not already.
+          <ol className="trade-flow">
+            <li><b>Sign in to GitHub</b> and open the <i>Publish a trade profile</i> issue template.</li>
+            <li>Fill in your alias, a coarse region, the sticker IDs you're missing and the duplicates you'd swap, and tick the two consent boxes.</li>
+            <li>A maintainer reviews the issue. If it looks reasonable, they add the <code>approved</code> label.</li>
+            <li>A <b>GitHub Actions workflow</b> — not you — then validates the submission and commits your entry to <code>public/trade-network.json</code> on <code>main</code>. The Pages deploy publishes the new file a minute or two later.</li>
+            <li>Your browser fetches that file directly on next load. No API, no auth token in the frontend, no precise location.</li>
+          </ol>
+          Removal works the same way: open the removal issue template and a maintainer approves it.
         </div>
 
         <div className="row gap-3 mt-4" style={{ flexWrap: 'wrap' }}>
           <a className="btn btn-primary" href={issueUrl} target="_blank" rel="noopener noreferrer">
-            Publish my trade profile (GitHub issue)
+            Sign in with GitHub & publish profile
           </a>
           <a className="btn" href={removalUrl} target="_blank" rel="noopener noreferrer">
             Request profile removal
@@ -90,6 +97,10 @@ export function TradesView() {
           <button className="btn" onClick={() => setDemoEnabled(v => !v)} aria-pressed={demoEnabled}>
             {demoEnabled ? 'Hide developer demo data' : 'Show developer demo data'}
           </button>
+        </div>
+        <div className="muted" style={{ fontSize: 12, marginTop: 8 }}>
+          No GitHub account? You can still use the album, forecast, and demo trade
+          matching locally — only publishing a real trade profile requires GitHub.
         </div>
 
         <div className="row gap-3 mt-4" style={{ flexWrap: 'wrap' }}>
@@ -113,12 +124,12 @@ export function TradesView() {
             <label>Source</label>
             <div className="tabular muted" style={{ paddingTop: 8 }}>
               {demoEnabled
-                ? `Demo data (${demoUsers.length} generated)`
+                ? `Demo data · ${demoUsers.length} generated profiles`
                 : loadState === 'loading'
                   ? 'Loading published profiles…'
                   : loadState === 'error'
                     ? 'Failed to load'
-                    : `${publishedUsers.length} opted-in collector${publishedUsers.length === 1 ? '' : 's'}`}
+                    : `${publishedUsers.length} GitHub-published profile${publishedUsers.length === 1 ? '' : 's'}`}
             </div>
           </div>
         </div>
@@ -131,11 +142,14 @@ export function TradesView() {
       )}
 
       {!demoEnabled && loadState === 'ready' && !hasPublished && (
-        <div className="card card-pad muted" style={{ textAlign: 'center' }}>
-          No profiles have been published yet. Be the first — open the{' '}
-          <a href={issueUrl} target="_blank" rel="noopener noreferrer">trade-profile issue template</a>{' '}
-          to publish yours. Until at least one other collector publishes, there
-          are no real matches to show.
+        <div className="card card-pad empty-state">
+          <div className="empty-illustration" aria-hidden="true">⚽</div>
+          <h3>No published trade profiles yet</h3>
+          <p className="muted">
+            Be the first. Sign in to GitHub and open the{' '}
+            <a href={issueUrl} target="_blank" rel="noopener noreferrer">trade-profile issue template</a>.
+            Once a maintainer approves it, a workflow commits your entry and it shows up here.
+          </p>
         </div>
       )}
 
@@ -215,7 +229,7 @@ function TradeRow({ match, demoMode, expanded, accepted, onToggleExpand, onToggl
             <div className="mt-2 muted">
               {demoMode
                 ? 'This is generated demo data, not a real account.'
-                : 'Contact this collector by commenting on their original trade-profile GitHub issue — no email is exposed by the site.'}
+                : 'To reach this collector, comment on their original trade-profile issue on GitHub. The site never exposes email addresses or precise locations.'}
             </div>
           </div>
         )}

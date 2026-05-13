@@ -70,7 +70,7 @@ export function ProfileView() {
       <div className="card card-pad stack">
         <h3>Your data</h3>
         <p className="muted" style={{ margin: 0, fontSize: 13.5 }}>
-          This app uses your browser's local storage to remember your album. Nothing leaves your device in the static GitHub Pages build. To use a server-backed sync, see the README — a simulated <code>/api/state</code> can be wired to a small serverless function or a private GitHub Gist.
+          This app keeps your album in your browser's local storage. Nothing is sent anywhere automatically in the static GitHub Pages build. The only path that leaves your device is opening a GitHub issue yourself to publish a trade profile — a maintainer reviews it and a GitHub Actions workflow commits the entry. Export your data below for a portable JSON backup.
         </p>
         <div className="row gap-2" style={{ flexWrap: 'wrap' }}>
           <button className="btn" onClick={onExport}>Export my data (JSON)</button>

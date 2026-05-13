@@ -101,8 +101,11 @@ export function AlbumView() {
       </div>
 
       {filteredSections.length === 0 ? (
-        <div className="card card-pad muted" style={{ textAlign: 'center' }}>
-          No stickers match. Try clearing filters.
+        <div className="card card-pad empty-state">
+          <div className="empty-illustration" aria-hidden="true">🔎</div>
+          <h3>Nothing matches these filters</h3>
+          <p className="muted">Try clearing the search, switching to <b>All</b>, or picking <b>All confederations</b>.</p>
+          <button className="btn btn-sm mt-2" onClick={() => { setQuery(''); setFilter('all'); setConfed('all'); }}>Clear filters</button>
         </div>
       ) : filteredSections.map(sec => (
         <section key={sec.name} className="section-block">

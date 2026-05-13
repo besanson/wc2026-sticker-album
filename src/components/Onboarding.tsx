@@ -63,7 +63,7 @@ export function Onboarding() {
         </div>
 
         <p className="muted" style={{ margin: 0 }}>
-          Track every sticker, prepare privacy-safe swaps, and forecast how close you are to a full set.
+          Track every sticker, prepare privacy-safe swaps, and forecast how close you are to a full set. Everything is stored only on this device until you choose to publish a trade profile via GitHub.
         </p>
 
         <div className="field">
@@ -93,8 +93,8 @@ export function Onboarding() {
         <label className="check">
           <input type="checkbox" checked={shareForTrades} onChange={e => setShareForTrades(e.target.checked)} />
           <span>
-            Include me in trade matching nearby other collectors
-            <span className="small">Only your alias, region, and which stickers you'd swap are used — no exact location.</span>
+            Show me trade matches against published profiles
+            <span className="small">This only affects local matching against profiles already published on GitHub. Your album is never uploaded automatically — publishing your own profile is a separate, explicit step that requires a GitHub account.</span>
           </span>
         </label>
 

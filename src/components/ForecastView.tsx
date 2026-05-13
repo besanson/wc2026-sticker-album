@@ -63,7 +63,7 @@ export function ForecastView() {
       <header className="card card-pad">
         <h2>Completion forecast</h2>
         <div className="sub">
-          A Monte Carlo simulation estimates how many unique stickers you should have after the packs you plan to buy, plus any selected demo trades. The default model reflects real-world pack collation, so early packs are not treated as fully independent random draws.
+          A Monte Carlo simulation estimates how many unique stickers you'll have after the packs you plan to buy, plus any trades you've marked as interested. The default model reflects real-world pack collation, so early packs are not treated as fully independent random draws.
         </div>
       </header>
 
