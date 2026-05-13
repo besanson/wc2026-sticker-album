@@ -32,7 +32,10 @@ jobs:
         run: npm ci
 
       - name: Build
-        run: VITE_BASE="/wc2026-sticker-album/" npm run build
+        env:
+          VITE_BASE: "/${{ github.event.repository.name }}/"
+          VITE_REPO_SLUG: ${{ github.repository }}
+        run: npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

@@ -1,0 +1,176 @@
+name: Process trade-profile issues
+
+# Two-stage flow:
+#   1. On any new/edited "trade-profile" issue, run the validator and post
+#      its output as a comment. No repo write to trade-network.json.
+#   2. Only when a *maintainer* (anyone with write permission) adds the
+#      `approved` label, apply the change, commit, and push.
+#
+# This conservative design means random internet input cannot mutate the
+# committed database. The validator does the heavy lifting (sanitization,
+# range checks, consent enforcement); a human just clicks "add label".
+
+on:
+  issues:
+    types: [opened, edited, labeled]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  validate:
+    if: contains(github.event.issue.labels.*.name, 'trade-profile') && !contains(github.event.issue.labels.*.name, 'trade-profile-removal')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: Validate (dry run)
+        id: validate
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          set +e
+          OUTPUT=$(node scripts/processTradeProfileIssue.mjs 2>&1)
+          STATUS=$?
+          echo "$OUTPUT"
+          # Reset the file so the validation pass does not modify the DB.
+          git checkout -- public/trade-network.json || true
+          {
+            echo "status=$STATUS"
+            echo "output<<EOF"
+            echo "$OUTPUT"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Comment validation result
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const status = `${{ steps.validate.outputs.status }}`;
+            const output = `${{ steps.validate.outputs.output }}`;
+            const ok = status === '0';
+            const body = ok
+              ? `✅ **Validation passed.** ${output}\n\nA maintainer will add the \`approved\` label to publish this profile.`
+              : `❌ **Validation failed.**\n\n\`\`\`\n${output}\n\`\`\`\n\nEdit the issue to fix the problems above; validation will re-run automatically.`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  apply:
+    # Apply only when a maintainer adds the `approved` label to a validated trade-profile issue.
+    if: github.event.action == 'labeled' && github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'trade-profile') && !contains(github.event.issue.labels.*.name, 'trade-profile-removal')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: Check approver permission
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const actor = context.actor;
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner, repo: context.repo.repo, username: actor,
+            });
+            if (!['admin', 'maintain', 'write'].includes(perm.permission)) {
+              core.setFailed(`Actor ${actor} lacks write permission (has: ${perm.permission}).`);
+            }
+
+      - name: Apply submission
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: node scripts/processTradeProfileIssue.mjs
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- public/trade-network.json; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git add public/trade-network.json
+          git commit -m "trade-network: add profile from #${{ github.event.issue.number }}"
+          git push
+
+      - name: Close issue with confirmation
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🚀 Profile published to \`public/trade-network.json\`. It will appear on the site after the next Pages deploy. To remove later, open a new issue: **Remove trade profile: <your alias>**.`,
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number, state: 'closed',
+            });
+
+  apply_removal:
+    if: github.event.action == 'labeled' && github.event.label.name == 'approved' && contains(github.event.issue.labels.*.name, 'trade-profile-removal')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { ref: main }
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+
+      - name: Check approver permission
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: perm } = await github.rest.repos.getCollaboratorPermissionLevel({
+              owner: context.repo.owner, repo: context.repo.repo, username: context.actor,
+            });
+            if (!['admin', 'maintain', 'write'].includes(perm.permission)) {
+              core.setFailed(`Actor ${context.actor} lacks write permission.`);
+            }
+
+      - name: Apply removal
+        env:
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_USER: ${{ github.event.issue.user.login }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: node scripts/removeTradeProfileIssue.mjs
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- public/trade-network.json; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git add public/trade-network.json
+          git commit -m "trade-network: remove profile per #${{ github.event.issue.number }}"
+          git push
+
+      - name: Close issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🧹 Profile removal applied. It will disappear from the site after the next Pages deploy.`,
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number, state: 'closed',
+            });

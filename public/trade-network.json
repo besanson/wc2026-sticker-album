@@ -1,0 +1,8 @@
+{
+  "$schema": "./trade-network.schema.json",
+  "version": 1,
+  "generatedAt": "2026-05-13T00:00:00.000Z",
+  "source": "github-issues",
+  "notes": "Opt-in collector profiles published via the GitHub issue template. No precise coordinates, no emails. Maintainers process submissions via the validate-trade-profile workflow. To request removal, open a new issue with the title 'Remove trade profile: <alias>'.",
+  "profiles": []
+}

@@ -20,10 +20,13 @@ Pages** with no live backend.
   doubles), confederation filter, per-section bulk "mark all owned" and
   "reset", and a sheet/modal that adjusts copies (0 = missing, 1 = owned,
   &gt;1 = duplicate).
-- **Explainable trade matching.** By default, no people are shown in the static
-  build because it is not connected to real collector accounts. A visible demo
-  mode can be enabled to test matching against generated collectors; score
-  formula and components are visible per match.
+- **Explainable trade matching.** Real collectors opt in by submitting a
+  GitHub issue; an Actions workflow validates the form and commits the
+  profile to a static JSON database the site fetches at runtime. No backend
+  server, no token in the frontend. See
+  [GitHub-only trade network](#github-only-trade-network) below. A developer
+  demo toggle remains for testing the matching algorithm against generated
+  collectors; score formula and components are visible per match.
 - **Monte Carlo completion forecast.** 600-trial uniform-draw simulation
   conditioned on packs you plan to buy and trades you've proposed; reports
   mean, P10–P90, probability of full set, expected duplicates, and a
@@ -115,6 +118,94 @@ branch of `your-user.github.io`.
 The default `vite.config.ts` falls back to `./` so the build also works on any
 static host (Netlify, Cloudflare Pages, S3) with no configuration.
 
+## GitHub-only trade network
+
+GitHub Pages cannot host a backend, and a static SPA cannot safely carry a
+write token. This project's solution is to use **GitHub itself** as the
+write path:
+
+1. A collector opens an issue from the **Publish a trade profile**
+   template (`.github/ISSUE_TEMPLATE/trade-profile.yml`). The form
+   collects alias, a coarse region from a curated list, missing sticker
+   IDs, duplicate IDs/counts, and two consent checkboxes.
+2. A workflow (`.github/workflows/process-trade-profile.yml`) runs the
+   validator (`scripts/processTradeProfileIssue.mjs`) in *dry-run* mode
+   and posts a comment with the result. No write to the database yet.
+3. A maintainer reviews the issue. If the validation passed and the
+   submission looks reasonable, they add the `approved` label.
+4. The same workflow re-runs in *apply* mode, verifies the actor has
+   `write` permission, executes the validator, and commits the updated
+   `public/trade-network.json` to `main`. The Pages deploy workflow
+   publishes the new file.
+5. The frontend (`src/components/TradesView.tsx`) fetches
+   `trade-network.json` from the Pages origin on load and feeds it
+   into the same matching algorithm used for demo data.
+
+To request removal, open an issue from the **Remove a trade profile**
+template; a maintainer approves it the same way.
+
+### What is and isn't collected
+
+| Stored in `trade-network.json` | Never collected |
+| --- | --- |
+| Public alias (validated against `[A-Za-z0-9 _-]{2,32}`) | Email or phone |
+| Coarse region from a curated list (no free-text addresses) | Precise GPS / IP geolocation |
+| Missing sticker IDs and duplicate IDs/counts | Local album state |
+| Submitter's GitHub login + submission timestamp | OAuth / API tokens (there are none) |
+
+Every record is opt-in via an explicit consent checkbox; the issue itself
+is the proof of consent and is publicly auditable. Submitters can remove
+their profile at any time using the removal issue template, or by deleting
+the original submission issue and notifying a maintainer.
+
+### Limitations vs. Supabase / Firebase
+
+| Capability | GitHub-only flow | Supabase/Firebase |
+| --- | --- | --- |
+| Write throughput | Minutes (workflow + commit + Pages deploy) | Seconds (direct DB writes) |
+| Auth | Implicit via GitHub login on the issue | First-class accounts, RLS, OAuth providers |
+| Realtime updates | None — manual page reload | Live subscriptions |
+| Maintainer workload | One label click per submission | Zero (after policies set) |
+| Cost | $0 on public repos | Free tier, then $$ |
+| Privacy guarantees | Maintainer-reviewed schema-validated commits | Depends on RLS policies you write |
+| Spam risk | Bounded by the human approval step | Needs CAPTCHA / abuse rules |
+
+The trade-off is intentional: the GitHub-only path is operationally simple
+and verifiably token-free at the cost of asynchronous, maintainer-gated
+writes. That is the right shape for a hobby-scale opt-in trade ledger.
+
+### Enabling submissions on your fork
+
+1. Enable Issues on the repo (Settings → General → Features).
+2. Make sure GitHub Actions has write permission (Settings → Actions →
+   General → Workflow permissions → *Read and write*).
+3. Build with the repo slug exposed so the in-app button deep-links to
+   the issue template:
+
+   ```bash
+   VITE_BASE="/your-repo/" VITE_REPO_SLUG="your-user/your-repo" npm run build
+   ```
+
+   The included GitHub Pages workflow does this automatically using
+   `${{ github.repository }}`.
+4. Optional: protect the `main` branch so only the
+   `github-actions[bot]` commit goes through review-approved labels.
+
+### Processing submissions manually
+
+If you'd rather not give the workflow write access, the same validator can
+be run locally:
+
+```bash
+ISSUE_NUMBER=42 \
+ISSUE_USER=octocat \
+ISSUE_BODY="$(gh issue view 42 --json body -q .body)" \
+node scripts/processTradeProfileIssue.mjs
+```
+
+It will print `OK:` or `VALIDATION_ERROR:` and update
+`public/trade-network.json` on success. Commit and push as usual.
+
 ## Simulated API / serverless extension
 
 `src/lib/storage.ts` is the entire data-access layer. To replace it with a
@@ -146,6 +237,8 @@ they can be reused unchanged on the server.
   all data**, satisfying GDPR access + erasure rights for the
   device-local copy.
 - The privacy copy in Onboarding states explicitly what is stored and where.
+- The opt-in trade network only stores what is shown in the table above; the
+  static JSON file is the entire dataset, visible to anyone with the repo URL.
 
 ## Not affiliated with FIFA or Panini
 

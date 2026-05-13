@@ -1,0 +1,118 @@
+name: Publish a trade profile
+description: Opt in to the public trade network so other collectors can match with your duplicates and missing stickers.
+title: "[trade-profile] <your alias>"
+labels: ["trade-profile", "needs-validation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Publish a trade profile
+
+        Submitting this issue publishes a **public, opt-in** trade profile in
+        `public/trade-network.json`. Anyone visiting the site will be able to
+        see your alias, coarse region, and which sticker IDs you need / have
+        duplicates of.
+
+        **What we store:**
+        - Alias (public, free text)
+        - Coarse region (one of the curated buckets below — no precise location)
+        - Missing sticker IDs and duplicate sticker IDs/counts
+        - Your GitHub login (linked from the issue itself — automatic)
+        - The timestamp of submission
+
+        **What we never store:**
+        - Email address, phone number, or any private contact
+        - Precise coordinates (GPS, address, IP geolocation)
+        - Anything from your local browser state
+
+        **To remove your profile later**, open a new issue titled
+        `Remove trade profile: <your alias>` — a maintainer will delete the
+        entry within one update cycle. You can also delete the original
+        submission issue.
+
+  - type: input
+    id: alias
+    attributes:
+      label: Alias
+      description: A public display name (2-32 characters, letters/digits/spaces/dashes/underscores only).
+      placeholder: e.g. "StickerHunter"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: region
+    attributes:
+      label: Coarse region
+      description: Pick the nearest region bucket. We never store exact coordinates.
+      options:
+        - London, UK
+        - Manchester, UK
+        - Berlin, DE
+        - Munich, DE
+        - Paris, FR
+        - Madrid, ES
+        - Barcelona, ES
+        - Milan, IT
+        - Rome, IT
+        - Lisbon, PT
+        - Amsterdam, NL
+        - Brussels, BE
+        - Zurich, CH
+        - Vienna, AT
+        - Warsaw, PL
+        - New York, US
+        - Los Angeles, US
+        - Chicago, US
+        - Toronto, CA
+        - Mexico City, MX
+        - São Paulo, BR
+        - Rio de Janeiro, BR
+        - Buenos Aires, AR
+        - Bogotá, CO
+        - Tokyo, JP
+        - Seoul, KR
+        - Sydney, AU
+        - Cairo, EG
+        - Lagos, NG
+        - Casablanca, MA
+        - Other / prefer not to say
+    validations:
+      required: true
+
+  - type: textarea
+    id: missing
+    attributes:
+      label: Missing sticker IDs
+      description: |
+        Comma- or space-separated integer sticker IDs you do **not** own.
+        Range: 1 to the catalog total (currently 980). Max 1000 entries.
+      placeholder: "12, 47, 122, 405, 600"
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: duplicates
+    attributes:
+      label: Duplicate sticker IDs and counts
+      description: |
+        One entry per line, formatted `<id>:<count>` where `count >= 2`.
+        Lines without `:` are treated as count=2. Max 1000 entries.
+      placeholder: |
+        7:3
+        58:2
+        301:4
+      render: text
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: consent
+    attributes:
+      label: Consent
+      description: Required to publish your profile.
+      options:
+        - label: I am the owner of this data and I consent to publishing my alias, coarse region, missing and duplicate sticker lists publicly in the static trade-network database. I understand the data is committed to a public GitHub repository and visible to anyone.
+          required: true
+        - label: I understand no email, phone number, or precise location is collected, and that I can request removal at any time by opening a new issue.
+          required: true

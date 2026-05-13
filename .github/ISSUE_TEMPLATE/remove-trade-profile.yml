@@ -1,0 +1,28 @@
+name: Remove a trade profile
+description: Request removal of an existing trade profile from the public database.
+title: "Remove trade profile: <your alias>"
+labels: ["trade-profile-removal"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Remove your trade profile
+
+        Open this issue from the same GitHub account that originally
+        submitted the profile, or include enough information for a
+        maintainer to identify the entry. A maintainer will remove the
+        record from `public/trade-network.json` in the next update.
+  - type: input
+    id: alias
+    attributes:
+      label: Alias to remove
+      placeholder: e.g. "StickerHunter"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: Optional. Useful if the alias is ambiguous (e.g. region or submission date).
+    validations:
+      required: false
