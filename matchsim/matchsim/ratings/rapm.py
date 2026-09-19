@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 from scipy import sparse
-from sklearn.linear_model import RidgeCV
+from sklearn.linear_model import Ridge, RidgeCV
 
 from matchsim.ratings.xt import action_xt_delta, fit_xt_grid
 
@@ -70,11 +70,36 @@ def _possession_table(actions: pd.DataFrame, games: pd.DataFrame, grid) -> pd.Da
     return pd.DataFrame(rows)
 
 
+def _design_matrix(possessions: pd.DataFrame) -> tuple[sparse.csr_matrix, dict, int]:
+    all_players = sorted(set().union(*possessions["attackers"], *possessions["defenders"]))
+    player_col = {p: i for i, p in enumerate(all_players)}
+    n_players = len(all_players)
+
+    rows, cols, data = [], [], []
+    for i, (attackers, defenders) in enumerate(zip(possessions["attackers"], possessions["defenders"])):
+        for p in attackers:
+            rows.append(i)
+            cols.append(player_col[p])
+            data.append(1.0)
+        for p in defenders:
+            rows.append(i)
+            cols.append(n_players + player_col[p])
+            data.append(1.0)
+
+    design = sparse.coo_matrix((data, (rows, cols)), shape=(len(possessions), 2 * n_players)).tocsr()
+    home_col = sparse.csr_matrix(possessions["home_indicator"].to_numpy().reshape(-1, 1))
+    design = sparse.hstack([design, home_col]).tocsr()
+    return design, player_col, n_players
+
+
 @dataclass
 class RAPMResult:
     ratings: dict  # player_id -> PlayerRating
     alpha: float
     n_possessions: int
+    design: sparse.csr_matrix  # cached for bootstrap_player_ratings; not a rating output
+    response: np.ndarray
+    player_col: dict
 
 
 def fit_rapm(
@@ -93,27 +118,9 @@ def fit_rapm(
     if possessions.empty:
         raise ValueError("no possessions with a resolvable attacking team to fit RAPM on")
 
-    all_players = sorted(set().union(*possessions["attackers"], *possessions["defenders"]))
-    player_col = {p: i for i, p in enumerate(all_players)}
-    n_players = len(all_players)
-    n_possessions = len(possessions)
-
-    rows, cols, data = [], [], []
-    for i, (attackers, defenders) in enumerate(zip(possessions["attackers"], possessions["defenders"])):
-        for p in attackers:
-            rows.append(i)
-            cols.append(player_col[p])
-            data.append(1.0)
-        for p in defenders:
-            rows.append(i)
-            cols.append(n_players + player_col[p])
-            data.append(1.0)
-
-    home_col = pd.DataFrame({"home": possessions["home_indicator"].to_numpy()})
-    design = sparse.coo_matrix((data, (rows, cols)), shape=(n_possessions, 2 * n_players)).tocsr()
-    design = sparse.hstack([design, sparse.csr_matrix(home_col.to_numpy())]).tocsr()
-
+    design, player_col, n_players = _design_matrix(possessions)
     y = possessions["value"].to_numpy()
+
     if alphas is None:
         alphas = np.logspace(-2, 8, 40)
     model = RidgeCV(alphas=alphas, cv=n_folds)
@@ -132,11 +139,35 @@ def fit_rapm(
     defender_counts = possessions["defenders"].explode().value_counts()
 
     ratings = {}
-    for p in all_players:
-        off_rating = float(model.coef_[player_col[p]])
-        def_rating = float(model.coef_[n_players + player_col[p]])
+    for p, col in player_col.items():
+        off_rating = float(model.coef_[col])
+        def_rating = float(model.coef_[n_players + col])
         n_poss = int(attacker_counts.get(p, 0) + defender_counts.get(p, 0))
         minutes = float(minutes_by_player.get(int(p), 0.0))
         ratings[p] = make_rating(p, off_rating, def_rating, minutes, n_poss)
 
-    return RAPMResult(ratings=ratings, alpha=float(model.alpha_), n_possessions=n_possessions)
+    return RAPMResult(
+        ratings=ratings,
+        alpha=float(model.alpha_),
+        n_possessions=len(possessions),
+        design=design,
+        response=y,
+        player_col=player_col,
+    )
+
+
+def bootstrap_player_ratings(result: RAPMResult, n_draws: int = 200, seed: int = 0):
+    """Case-resampling bootstrap over possessions, reusing the already
+    cross-validated alpha (a single Ridge solve is ~1000x faster than a fresh
+    RidgeCV search -- see matchsim/README.md), so 200 real refits stay fast
+    enough for on-demand use. Yields one {player_id: (off_rating, def_rating)}
+    dict per draw."""
+    rng = np.random.default_rng(seed)
+    n = result.design.shape[0]
+    n_players = len(result.player_col)
+
+    for _ in range(n_draws):
+        idx = rng.integers(0, n, size=n)
+        model = Ridge(alpha=result.alpha)
+        model.fit(result.design[idx], result.response[idx])
+        yield {p: (float(model.coef_[col]), float(model.coef_[n_players + col])) for p, col in result.player_col.items()}

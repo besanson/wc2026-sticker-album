@@ -1,0 +1,7 @@
+# Demo what-if scenario (StatsBomb open data, Serie A 2015/16 -- see
+# demo_lineup_statsbomb_serieA_2015_16.json). Flags are user-typed only, never
+# inferred from data (CLAUDE.md section 1).
+lineups: examples/demo_lineup_statsbomb_serieA_2015_16.json
+home_flags:
+  "5512":  # Emil Hallfreðsson, Hellas Verona
+    available: false

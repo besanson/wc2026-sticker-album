@@ -1,0 +1,121 @@
+{
+  "home_team": "Hellas Verona",
+  "away_team": "AS Roma",
+  "note": "Demo lineup from StatsBomb open data (Serie A 2015/16, CC-BY-style licence). Not a 2026-27 fixture.",
+  "source_game_id": 3878541,
+  "actual_result": "1-1",
+  "home_lineup": [
+    {
+      "player_id": 5512,
+      "name": "Emil Hallfreðsson",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 5558,
+      "name": "Rafael Márquez Álvarez",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 7020,
+      "name": "Jacopo Sala",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 7695,
+      "name": "Samuel Souprayen",
+      "expected_minutes": 77.0
+    },
+    {
+      "player_id": 9887,
+      "name": "Rafael de Andrade Bittencourt Pinheiro",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 11342,
+      "name": "Eros Pisano",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 20252,
+      "name": "Luca Toni",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 26442,
+      "name": "Boško Janković",
+      "expected_minutes": 82.0
+    },
+    {
+      "player_id": 31488,
+      "name": "Vangelis Moras",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 32119,
+      "name": "Leandro Greco",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 386651,
+      "name": "Juan Ignacio Gómez Taleb",
+      "expected_minutes": 73.0
+    }
+  ],
+  "away_lineup": [
+    {
+      "player_id": 3531,
+      "name": "Mohamed Salah",
+      "expected_minutes": 64.0
+    },
+    {
+      "player_id": 5669,
+      "name": "Wojciech Szczęsny",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 6947,
+      "name": "Miralem Pjanić",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 6962,
+      "name": "Radja Nainggolan",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 6964,
+      "name": "Alessandro Florenzi",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 6973,
+      "name": "Edin Džeko",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 7048,
+      "name": "Konstantinos Manolas",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 7051,
+      "name": "Daniele De Rossi",
+      "expected_minutes": 65.0
+    },
+    {
+      "player_id": 7961,
+      "name": "Leandro Castán da Silva",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 8104,
+      "name": "Vassilis Torosidis",
+      "expected_minutes": 93.0
+    },
+    {
+      "player_id": 15818,
+      "name": "Gervais Lombe Yao Kouassi",
+      "expected_minutes": 82.0
+    }
+  ]
+}
