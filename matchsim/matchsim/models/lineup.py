@@ -78,18 +78,25 @@ class CalibratedLink:
     beta_strength: float
     beta_home: float
     n_training_rows: int
+    beta_interaction: float | None = None  # spec 4.4; None unless the term was validated to help
 
-    def lambda_for(self, own_attack: float, opp_defence: float, is_home: bool) -> float:
+    def lambda_for(self, own_attack: float, opp_defence: float, is_home: bool, interaction: float = 0.0) -> float:
         strength_diff = own_attack - opp_defence
         log_lambda = self.intercept + self.beta_strength * strength_diff + self.beta_home * (1.0 if is_home else 0.0)
+        if self.beta_interaction is not None:
+            log_lambda += self.beta_interaction * interaction
         return float(np.exp(log_lambda))
 
 
-def build_link_training_rows(games: pd.DataFrame, players: pd.DataFrame, rapm_result: RAPMResult) -> pd.DataFrame:
+def build_link_training_rows(
+    games: pd.DataFrame, players: pd.DataFrame, rapm_result: RAPMResult, styles: dict | None = None
+) -> pd.DataFrame:
     """One row per team-match: that team's actual goals, its lineup attack minus
     the opponent's lineup defence, and a home indicator. Lineups are each
     game's actual starting XI weighted by actual minutes_played (we know what
-    happened, unlike a future fixture)."""
+    happened, unlike a future fixture). If `styles` (matchsim.ratings.style
+    TeamStyle per team_id) is given, also includes the directness x
+    press-intensity interaction column (spec 4.4)."""
     starters = players[players["is_starter"]]
     rows = []
     for _, game in games.iterrows():
@@ -115,19 +122,26 @@ def build_link_training_rows(games: pd.DataFrame, players: pd.DataFrame, rapm_re
             ]
             own_strength = build_lineup_strength(team_lineup, rapm_result.ratings)
             opp_strength = build_lineup_strength(opp_lineup, rapm_result.ratings)
-            rows.append(
-                {
-                    "goals": goals,
-                    "attack_diff": own_strength.attack - opp_strength.defence,
-                    "is_home": 1.0 if side == "home" else 0.0,
-                }
-            )
+            row = {
+                "goals": goals,
+                "attack_diff": own_strength.attack - opp_strength.defence,
+                "is_home": 1.0 if side == "home" else 0.0,
+            }
+            if styles is not None:
+                ts, to = styles.get(team_id), styles.get(opp_id)
+                row["interaction"] = ts.directness * to.press_intensity if ts and to else 0.0
+            rows.append(row)
     return pd.DataFrame(rows)
 
 
 def fit_calibrated_link(training_rows: pd.DataFrame) -> CalibratedLink:
-    """Poisson GLM: goals ~ lineup strength difference + home indicator (spec 4.3.4)."""
-    X = sm.add_constant(training_rows[["attack_diff", "is_home"]])
+    """Poisson GLM: goals ~ lineup strength difference + home indicator (spec
+    4.3.4), plus the style-interaction term (spec 4.4) if `training_rows` has
+    an "interaction" column -- callers only pass one in once it's been
+    validated to improve held-out RPS (see ratings.style.evaluate_matchup_interaction)."""
+    has_interaction = "interaction" in training_rows.columns
+    covariates = ["attack_diff", "is_home", "interaction"] if has_interaction else ["attack_diff", "is_home"]
+    X = sm.add_constant(training_rows[covariates])
     y = training_rows["goals"]
     fitted = sm.GLM(y, X, family=sm.families.Poisson()).fit()
     return CalibratedLink(
@@ -135,6 +149,7 @@ def fit_calibrated_link(training_rows: pd.DataFrame) -> CalibratedLink:
         beta_strength=float(fitted.params["attack_diff"]),
         beta_home=float(fitted.params["is_home"]),
         n_training_rows=len(training_rows),
+        beta_interaction=float(fitted.params["interaction"]) if has_interaction else None,
     )
 
 
@@ -156,25 +171,38 @@ def predict_tier2(
     away_scenario: dict | None = None,
     n_bootstrap_draws: int = 200,
     rho: float = 0.0,
+    home_team_id=None,
+    away_team_id=None,
+    styles: dict | None = None,
 ) -> Tier2Prediction:
     """rho: the low-score correlation term. Tier 2 doesn't refit its own -- spec
     4.3.5 says to feed the two lambdas into the same scoreline machinery as
-    Tier 1, "including rho", so callers should pass in the Tier 1 fitted rho."""
+    Tier 1, "including rho", so callers should pass in the Tier 1 fitted rho.
+
+    home_team_id/away_team_id/styles: only needed if `link` has a validated
+    interaction term (link.beta_interaction is not None) -- looks up each
+    side's style vector (spec 4.4) to compute it. Without them the
+    interaction term is treated as 0, same as a link that never had one."""
     from matchsim.sim.scoreline import scoreline_matrix, summarize
 
     home_strength = build_lineup_strength(home_lineup, rapm_result.ratings, home_scenario)
     away_strength = build_lineup_strength(away_lineup, rapm_result.ratings, away_scenario)
 
-    lambda_home = link.lambda_for(home_strength.attack, away_strength.defence, is_home=True)
-    lambda_away = link.lambda_for(away_strength.attack, home_strength.defence, is_home=False)
+    home_style = styles.get(home_team_id) if styles and home_team_id is not None else None
+    away_style = styles.get(away_team_id) if styles and away_team_id is not None else None
+    home_interaction = home_style.directness * away_style.press_intensity if home_style and away_style else 0.0
+    away_interaction = away_style.directness * home_style.press_intensity if home_style and away_style else 0.0
+
+    lambda_home = link.lambda_for(home_strength.attack, away_strength.defence, is_home=True, interaction=home_interaction)
+    lambda_away = link.lambda_for(away_strength.attack, home_strength.defence, is_home=False, interaction=away_interaction)
 
     p_home_draws, p_draw_draws, p_away_draws = [], [], []
     for draw_ratings in bootstrap_player_ratings(rapm_result, n_draws=n_bootstrap_draws):
         ratings_view = {pid: _RatingView(*vals) for pid, vals in draw_ratings.items()}
         hs = build_lineup_strength(home_lineup, ratings_view, home_scenario)
         aws = build_lineup_strength(away_lineup, ratings_view, away_scenario)
-        lh = link.lambda_for(hs.attack, aws.defence, is_home=True)
-        la = link.lambda_for(aws.attack, hs.defence, is_home=False)
+        lh = link.lambda_for(hs.attack, aws.defence, is_home=True, interaction=home_interaction)
+        la = link.lambda_for(aws.attack, hs.defence, is_home=False, interaction=away_interaction)
         matrix = scoreline_matrix(lh, la, rho=rho, max_goals=8)
         summary = summarize(matrix, lh, la)
         p_home_draws.append(summary.p_home)

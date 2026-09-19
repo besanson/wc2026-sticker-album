@@ -1,6 +1,8 @@
 {
   "home_team": "Hellas Verona",
   "away_team": "AS Roma",
+  "home_team_id": 226,
+  "away_team_id": 229,
   "note": "Demo lineup from StatsBomb open data (Serie A 2015/16, CC-BY-style licence). Not a 2026-27 fixture.",
   "source_game_id": 3878541,
   "actual_result": "1-1",
