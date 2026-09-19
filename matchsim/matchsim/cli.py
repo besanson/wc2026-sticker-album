@@ -16,20 +16,25 @@ app = typer.Typer(help="Tiered Udinese vs Cagliari match simulator.")
 
 DEFAULT_MODEL_PATH = Path("models/dixon_coles.pkl")
 
+# StatsBomb open data has no 2026-27 Serie A (or any current) event data (CLAUDE.md:
+# "Do not assume it exists"). Serie A 2015/16 is the closest same-league demo/validation
+# set StatsBomb's open data actually publishes -- always labelled as demo, never as
+# current ratings.
+STATSBOMB_DEMO_COMPETITION_ID = 12
+STATSBOMB_DEMO_SEASON_ID = 27
+
 
 @app.command()
 def fit(
     results: Path = typer.Option(Path("data/results.csv"), help="Path to results.csv"),
-    events: Optional[str] = typer.Option(
-        None, help="Event-data source for Tier 2 (e.g. 'statsbomb'). Not implemented yet."
-    ),
+    events: Optional[str] = typer.Option(None, help="Event-data source for Tier 2, e.g. 'statsbomb'."),
+    max_games: int = typer.Option(150, help="Cap on games fetched for --events statsbomb (demo/validation scale)"),
     out: Path = typer.Option(Path("models/"), help="Directory to write fitted model artifacts"),
     xi: float = typer.Option(dixon_coles.DEFAULT_XI, help="Time-decay rate for match weighting"),
 ):
-    """Fit Tier 1 (Dixon-Coles) on results.csv and save it to --out."""
-    if events:
-        typer.echo(f"Note: --events {events!r} (Tier 2 data pipeline) is not implemented yet; fitting Tier 1 only.")
-
+    """Fit Tier 1 (Dixon-Coles) on results.csv, and optionally the Tier 2 VAEP/RAPM
+    player-rating pipeline on StatsBomb open data (demo/validation only -- see
+    CLAUDE.md). Saves fitted artifacts to --out."""
     matches = load_results(results)
     with warnings.catch_warnings(record=True) as caught:
         warnings.simplefilter("always")
@@ -45,6 +50,54 @@ def fit(
     typer.echo(f"Fitted Dixon-Coles on {result.n_matches} matches ({len(result.teams)} teams).")
     typer.echo(f"Home advantage: {result.home_advantage_goals:.3f} goals.  rho: {result.rho:.3f}")
     typer.echo(f"Saved to {model_path}")
+
+    if events == "statsbomb":
+        _fit_statsbomb_ratings(out, max_games)
+    elif events:
+        typer.echo(f"Note: --events {events!r} is not a recognised source; only 'statsbomb' is implemented.")
+
+
+def _fit_statsbomb_ratings(out: Path, max_games: int) -> None:
+    from matchsim.io.statsbomb import DEMO_LABEL, load_statsbomb
+    from matchsim.ratings import vaep as vaep_module
+    from matchsim.ratings.rapm import fit_rapm
+
+    typer.echo(f"\n{DEMO_LABEL}")
+    typer.echo(f"Fetching {max_games} games (Serie A 2015/16 -- the closest same-league StatsBomb open-data season; there is no 2026-27 event data).")
+    with warnings.catch_warnings():
+        # noisy pandas-deprecation FutureWarnings from inside socceraction's own
+        # loader internals, not from matchsim -- not this codebase's bug to fix.
+        warnings.filterwarnings("ignore", category=FutureWarning)
+        dataset = load_statsbomb(STATSBOMB_DEMO_COMPETITION_ID, STATSBOMB_DEMO_SEASON_ID, max_games=max_games)
+    typer.echo(f"Loaded {len(dataset.games)} games, {len(dataset.actions)} actions.")
+
+    typer.echo("Fitting VAEP (socceraction + LightGBM)...")
+    vaep_model = vaep_module.fit_vaep(dataset.actions, dataset.games)
+    action_values = vaep_module.rate_actions(vaep_model, dataset.actions, dataset.games)
+    vaep_ratings = vaep_module.aggregate_player_vaep(action_values, dataset.players)
+
+    typer.echo("Fitting RAPM (possession-level ridge regression, 5-fold CV)...")
+    rapm_result = fit_rapm(dataset.actions, dataset.players, dataset.games)
+
+    out.mkdir(parents=True, exist_ok=True)
+    ratings_path = out / "tier2_ratings.pkl"
+    with open(ratings_path, "wb") as f:
+        pickle.dump(
+            {
+                "label": DEMO_LABEL,
+                "competition_id": STATSBOMB_DEMO_COMPETITION_ID,
+                "season_id": STATSBOMB_DEMO_SEASON_ID,
+                "vaep_ratings": vaep_ratings,
+                "rapm_result": rapm_result,
+            },
+            f,
+        )
+
+    n_thin_vaep = int(vaep_ratings["thin_sample"].sum())
+    n_thin_rapm = sum(r.thin_sample for r in rapm_result.ratings.values())
+    typer.echo(f"VAEP: {len(vaep_ratings)} players rated ({n_thin_vaep} thin_sample).")
+    typer.echo(f"RAPM: {len(rapm_result.ratings)} players rated ({n_thin_rapm} thin_sample), alpha={rapm_result.alpha:.1f}.")
+    typer.echo(f"Saved to {ratings_path}")
 
 
 def _load_or_fit_tier1(results: Path, model_path: Path, xi: float) -> dixon_coles.DixonColesResult:
