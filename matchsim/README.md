@@ -52,7 +52,13 @@ and takes minutes, which doesn't belong in a fast test suite.
   and validated on StatsBomb open-data demo fixtures (`predict --tier 2`,
   `whatif`). Cannot yet serve the actual Udinese vs Cagliari fixture: no
   2026-27 lineup or event data exists to rate either squad's current
-  players from. A style-interaction term (section 4.4) was tried and
-  dropped -- it looked significant in-sample but worsened held-out RPS.
-- Tier 3 (possession-sequence stub): not started, optional.
-- Eval report with ablations: not started.
+  players from. A style-interaction term (section 4.4) improved held-out
+  RPS on average but destabilized the link's core coefficient, so it's
+  built and tested but not wired into the shipped model -- see
+  `reports/eval.md` and the final report for the full reasoning.
+- Eval report with ablations: done. `matchsim eval --season <s> --report
+  reports/eval.md`. Real Tier 1 RPS on the held-out 2025-26 season: 0.2169.
+- Tier 3 (possession-sequence stub, optional): done as an unconditional
+  stub (small GRU over SPADL action tokens, no team-identity conditioning
+  yet) -- see `reports/udinese_cagliari.md` for the honest read on what its
+  RPS number does and doesn't show.

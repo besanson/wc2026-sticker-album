@@ -172,6 +172,37 @@ read; treat it as the seasoned-observer's gut estimate, not a scout report.
 | StatsBomb open data, Serie A 2015/16 | Tier 2 machinery validation (RAPM, VAEP, lineup model, calibrated link) | **Demo only** — not the 2026-27 squads |
 | Udinese vs Cagliari, 19 Sep 2026 lineups | Tier 2 prediction for the actual fixture | **Does not exist** — not supplied, and no rateable player data would back it yet |
 
-Not implemented: Tier 3 (possession-sequence generative model) — spec
-section 5 marks it optional, gated on Tiers 1 and 2 passing their tests
-(they do), to be attempted only if time remains after this report.
+## Tier 3 — possession-sequence stub (experimental, spec section 5)
+
+Built after this report, since Tiers 1 and 2 pass their tests. A small GRU
+(456-token vocabulary: home/away flag x SPADL action type x result x a
+coarse 3x3 pitch zone) trained for 8 epochs on 120 of the 150 demo games,
+then used to generate 2,000 simulated matches action-by-action (capped at
+2,200 tokens), aggregated to a scoreline distribution.
+
+**This stub has no team-identity conditioning** — it generates "an average
+match," not a specific fixture, so it's evaluated the way a baseline is:
+one shared distribution scored against all 30 held-out demo games.
+
+| Model | RPS (30-game demo holdout) |
+| --- | --- |
+| Tier 3 (unconditional GRU) | 0.2126 |
+| Naive baseline (same demo data) | 0.2103 |
+| Dixon-Coles fit on the same 120 demo games | 0.2415 |
+| *(reference)* Tier 1 on real, 344-game 2025-26 holdout | 0.2169 |
+
+By the spec's literal rule ("include only if RPS is within 0.01 of Tier
+1"), this passes against the real Tier 1 number (|0.2126-0.2169|=0.0043).
+**But that's not the honest headline**: the naive baseline is *also* within
+0.01 of Tier 1 (0.0066) using zero modelling at all, and Dixon-Coles itself
+underperforms both when starved down to 120 games (too few matches per
+team to estimate attack/defence reliably at this demo scale). Tier 3's
+"pass" mostly shows it learned realistic baseline outcome rates, not that
+sequence generation is capturing real match-specific signal here — RPS
+values for football's three-way outcome are naturally clustered close
+together, so "close to Tier 1" is an easier bar to clear than it sounds.
+A team-conditioned version would be the real test; that's future work
+beyond this stub's scope.
+
+Not attempted: team/player-conditioned generation (would hit the same
+no-current-player-data wall as Tier 2).
